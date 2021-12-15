@@ -7,6 +7,7 @@ const compiledFactory = require("../eth/build/CampaignFactory.json");
 const compiledCampaign = require("../eth/build/Campaign.json");
 
 let accounts, factory, campaignAddress, campaign;
+const eth = (s) => web3.utils.toWei(s.toString(), "ether");
 
 beforeEach(async () => {
   // Get a list of all accounts
@@ -52,7 +53,7 @@ describe("Campaign", function () {
     assert(approversCountOld < approversCountNew);
     assert.equal(2, approversCountNew);
   });
-  it("requires min contribution", async () => {
+  it("requires min contribution fee", async () => {
     let evaluated;
     try {
       await campaign.methods
@@ -68,13 +69,18 @@ describe("Campaign", function () {
     assert.equal(false, appr3);
   });
   it("create a request", async () => {
-    await campaign.methods.createRequest("aduket", 300, accounts[5]).send({
+    await campaign.methods.createRequest("a", eth("4"), accounts[5]).send({
       from: accounts[0],
       gas: 1_000_000,
     });
     const request = await campaign.methods.requests(0).call();
     // console.log("request", request);
-    assert.equal("aduket", request.description);
+    // console.log(
+    //   await campaign.methods
+    //     .createRequest("Buy batteries", "100", accounts[1])
+    //     .estimateGas()
+    // );
+    assert.equal("a", request.description);
   });
 
   it("prevent from creating request except manager", async () => {
@@ -143,11 +149,11 @@ describe("Campaign", function () {
     const balanceOld = await web3.eth.getBalance(accounts[5]);
     await campaign.methods
       .contribute()
-      .send({ from: accounts[1], value: "200" });
+      .send({ from: accounts[1], value: eth(3) });
     await campaign.methods
       .contribute()
-      .send({ from: accounts[2], value: "200" });
-    await campaign.methods.createRequest("aduket", 100, accounts[5]).send({
+      .send({ from: accounts[2], value: eth(4) });
+    await campaign.methods.createRequest("aduket", eth(7), accounts[5]).send({
       from: accounts[0],
       gas: 1_000_000,
     });
@@ -166,6 +172,8 @@ describe("Campaign", function () {
     });
     const balanceNew = await web3.eth.getBalance(accounts[5]);
     const request = await campaign.methods.requests(0).call();
+    console.log(balanceOld);
+    console.log(balanceNew);
     assert(balanceNew > balanceOld);
     assert.equal(true, request.completed);
   });
@@ -173,11 +181,11 @@ describe("Campaign", function () {
     const balanceOld = await web3.eth.getBalance(accounts[5]);
     await campaign.methods
       .contribute()
-      .send({ from: accounts[1], value: "200" });
+      .send({ from: accounts[1], value: eth(5) });
     await campaign.methods
       .contribute()
-      .send({ from: accounts[2], value: "200" });
-    await campaign.methods.createRequest("aduket", 500, accounts[5]).send({
+      .send({ from: accounts[2], value: eth(5) });
+    await campaign.methods.createRequest("aduket", eth(11), accounts[5]).send({
       from: accounts[0],
       gas: 1_000_000,
     });
@@ -203,9 +211,11 @@ describe("Campaign", function () {
 
     const balanceNew = await web3.eth.getBalance(accounts[5]);
     const contractBalance = await web3.eth.getBalance(campaignAddress);
-    console.log(contractBalance);
+
+    console.log("cont bal", contractBalance);
     console.log(balanceOld);
     console.log(balanceNew);
+    assert.equal(eth(10), contractBalance);
     assert.equal(false, isfinilized);
   });
 });
