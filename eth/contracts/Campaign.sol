@@ -70,6 +70,7 @@ contract Campaign {
 
     function finilazeRequest(uint256 index) public restricted {
         Request storage request = requests[index];
+        require(this.balance > request.value);
         require(!request.completed);
         require(request.approvalCount > (approversCount / 2));
 

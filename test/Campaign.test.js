@@ -141,8 +141,6 @@ describe("Campaign", function () {
   });
   it("can finilaze request", async () => {
     const balanceOld = await web3.eth.getBalance(accounts[5]);
-    let value = web3.utils.toWei("1.2", "ether");
-    console.log("value", value, typeof value);
     await campaign.methods
       .contribute()
       .send({ from: accounts[1], value: "200" });
@@ -168,13 +166,46 @@ describe("Campaign", function () {
     });
     const balanceNew = await web3.eth.getBalance(accounts[5]);
     const request = await campaign.methods.requests(0).call();
-
-    const contractBalance = await web3.eth.getBalance(campaignAddress);
-    console.log(contractBalance);
-
-    console.log(balanceOld);
-    console.log(balanceNew);
     assert(balanceNew > balanceOld);
     assert.equal(true, request.completed);
+  });
+  it("require enough balance to finalize", async () => {
+    const balanceOld = await web3.eth.getBalance(accounts[5]);
+    await campaign.methods
+      .contribute()
+      .send({ from: accounts[1], value: "200" });
+    await campaign.methods
+      .contribute()
+      .send({ from: accounts[2], value: "200" });
+    await campaign.methods.createRequest("aduket", 500, accounts[5]).send({
+      from: accounts[0],
+      gas: 1_000_000,
+    });
+    await campaign.methods.approveRequest(0).send({
+      from: accounts[1],
+      gas: 1_000_000,
+    });
+    await campaign.methods.approveRequest(0).send({
+      from: accounts[2],
+      gas: 1_000_000,
+    });
+
+    let isfinilized;
+    try {
+      await campaign.methods.finilazeRequest(0).send({
+        from: accounts[0],
+        gas: 1_000_000,
+      });
+      isfinilized = true;
+    } catch (error) {
+      isfinilized = false;
+    }
+
+    const balanceNew = await web3.eth.getBalance(accounts[5]);
+    const contractBalance = await web3.eth.getBalance(campaignAddress);
+    console.log(contractBalance);
+    console.log(balanceOld);
+    console.log(balanceNew);
+    assert.equal(false, isfinilized);
   });
 });
