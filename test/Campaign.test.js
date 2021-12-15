@@ -149,7 +149,7 @@ describe("Campaign", function () {
     await campaign.methods
       .contribute()
       .send({ from: accounts[2], value: "200" });
-    await campaign.methods.createRequest("aduket", 1, accounts[5]).send({
+    await campaign.methods.createRequest("aduket", 100, accounts[5]).send({
       from: accounts[0],
       gas: 1_000_000,
     });
@@ -168,6 +168,9 @@ describe("Campaign", function () {
     });
     const balanceNew = await web3.eth.getBalance(accounts[5]);
     const request = await campaign.methods.requests(0).call();
+
+    const contractBalance = await web3.eth.getBalance(campaignAddress);
+    console.log(contractBalance);
 
     console.log(balanceOld);
     console.log(balanceNew);
