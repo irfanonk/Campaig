@@ -69,11 +69,16 @@ describe("Campaign", function () {
     assert.equal(false, appr3);
   });
   it("create a request", async () => {
-    await campaign.methods.createRequest("a", eth("4"), accounts[5]).send({
-      from: accounts[0],
-      gas: 1_000_000,
-    });
+    const tx = await campaign.methods
+      .createRequest("a", eth("4"), accounts[5])
+      .send({
+        from: accounts[0],
+        gas: 1_000_000,
+      });
     const request = await campaign.methods.requests(0).call();
+    let { logs } = tx;
+    const requestEvents = campaign.RequestEvents();
+    console.log("logs", logs);
     // console.log("request", request);
     // console.log(
     //   await campaign.methods

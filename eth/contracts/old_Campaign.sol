@@ -1,21 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.4.26;
-import "hardhat/console.sol";
+pragma solidity ^0.4.17;
 
 contract CampaignFactory {
     address[] public deployedCampaigns;
 
-    function createCampaign(
-        string _name,
-        string _description,
-        uint256 _minimum
-    ) public {
-        address newCampaign = new Campaign(
-            _name,
-            _description,
-            _minimum,
-            msg.sender
-        );
+    function createCampaign(uint256 minimum) public {
+        address newCampaign = new Campaign(minimum, msg.sender);
         deployedCampaigns.push(newCampaign);
     }
 
@@ -34,62 +23,41 @@ contract Campaign {
         mapping(address => bool) approvals; //referance type
     }
     Request[] public requests;
-    string public name;
-    string public description;
-    uint256 public minimunContribution;
     address public manager;
+    uint256 public minimunContribution;
     mapping(address => bool) public approvers;
     uint256 public approversCount;
 
-    event RequestEvents(
-        address indexed creator,
-        string indexed description,
-        address indexed recipient,
-        uint256 _value
-    );
     modifier restricted() {
         require(msg.sender == manager);
         _;
     }
 
-    constructor(
-        string _name,
-        string _description,
-        uint256 _minimum,
-        address _campaignCreator
-    ) public {
-        (name, description, minimunContribution, manager) = (
-            _name,
-            _description,
-            _minimum,
-            _campaignCreator
-        );
+    function Campaign(uint256 minimum, address campaignCreator) public {
+        manager = campaignCreator;
+        minimunContribution = minimum;
     }
 
     function contribute() public payable {
-        console.log("msg", msg.sender, msg.value);
-        require(
-            msg.value >= minimunContribution,
-            "value should be minimun contribution"
-        );
+        require(msg.value >= minimunContribution);
+        require(!approvers[msg.sender]);
         approvers[msg.sender] = true;
         approversCount++;
     }
 
     function createRequest(
-        string _description,
-        uint256 _value,
-        address _recipient
+        string description,
+        uint256 value,
+        address recipient
     ) public restricted {
         Request memory newRequest = Request({
             completed: false,
-            description: _description,
-            value: _value,
-            recipient: _recipient,
+            description: description,
+            value: value,
+            recipient: recipient,
             approvalCount: 0
         });
         requests.push(newRequest);
-        emit RequestEvents(msg.sender, _description, _recipient, _value);
     }
 
     function approveRequest(uint256 index) public {
@@ -103,6 +71,7 @@ contract Campaign {
 
     function finilazeRequest(uint256 index) public restricted {
         Request storage request = requests[index];
+        require(this.balance >= request.value);
         require(!request.completed);
         require(request.approvalCount > (approversCount / 2));
 
@@ -123,10 +92,14 @@ contract Campaign {
     {
         return (
             minimunContribution,
-            address(this).balance,
+            this.balance,
             requests.length,
             approversCount,
             manager
         );
+    }
+
+    function getRequestsCount() public view returns (uint256) {
+        return requests.length;
     }
 }
